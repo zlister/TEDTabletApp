@@ -10,7 +10,9 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -18,6 +20,9 @@ public class ThreadActivity extends Activity {
 
 	private static final int DISCOVERABLE_REQUEST_CODE = 0x1;
 	private boolean CONTINUE_READ_WRITE = true;
+
+	// this is to keep track of the the track that is being played from the app
+	private int currentTrack = 0;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -87,20 +92,68 @@ public class ThreadActivity extends Activity {
 						@Override
 						public void run() {
 							//Toast.makeText(ThreadActivity.this, sb.toString(), Toast.LENGTH_LONG).show();
+							int sectionCount = 0;
 							ImageView image = (ImageView) findViewById(R.id.imageView);
 							String mDrawableName = "";
+							String mRawAudioName1 = "";
+							String mRawAudioName2 = "";
+							String mRawAudioName3 = "";
 							String readInData = sb.toString();
 
 							// to account for a fixed byte length message being sent over bluetooth
-							for (int i = 0; i < 20; i++) {
-								if (readInData.charAt(i) != 0) {
-									mDrawableName += readInData.charAt(i);
-								} else {
+							// the message will be comma separated for the image and audio files
+							for (int i = 0; i < 50; i++) {
+								if (readInData.charAt(i) == ',') {				// move to the next section
+									sectionCount++;
+								} else if (readInData.charAt(i) != 0) {			// if the char isn't null and not a comma
+									if (sectionCount == 0) {
+										mDrawableName += readInData.charAt(i);
+									} else if (sectionCount == 1) {
+										mRawAudioName1 += readInData.charAt(i);
+									} else if (sectionCount == 2) {
+										mRawAudioName2 += readInData.charAt(i);
+									} else {
+										mRawAudioName3 += readInData.charAt(i);
+									}
+								} else {										// char is null, message has ended
 									break;
 								}
 							}
-							int resID = getResources().getIdentifier(mDrawableName , "drawable", getPackageName());
-							image.setImageResource(resID);
+
+							// always guaranteed an image and 1 audio file
+							int imageID = getResources().getIdentifier(mDrawableName , "drawable", getPackageName());
+							int audioID1 = getResources().getIdentifier(mRawAudioName1, "raw", getPackageName());
+							int audioID2 = 0;
+							int audioID3 = 0;
+
+							// if there are a second and third audio clip, retrieve them
+							if (mRawAudioName2 != null) audioID2 = getResources().getIdentifier(mRawAudioName2, "raw", getPackageName());
+							if (mRawAudioName3 != null) audioID3 = getResources().getIdentifier(mRawAudioName3, "raw", getPackageName());
+
+							// set the image on the screen
+							image.setImageResource(imageID);
+
+							// audio playing section
+							final int[] tracks = new int[3]; // max number of tracks is 3
+							tracks[0] = audioID1;
+							tracks[1] = audioID2;
+							tracks[2] = audioID3;
+							final MediaPlayer mediaPlayer;
+							mediaPlayer = MediaPlayer.create(getApplicationContext(), tracks[0]);			// set up the mediaplayer with the first track
+							currentTrack = 1;
+							mediaPlayer.start();
+							mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+								@Override
+								public void onCompletion(MediaPlayer mp) {
+									mp.release();
+									if (currentTrack < tracks.length && tracks[currentTrack] != 0) {		// if it's not the end of the array plus there is an actual ID of the audio track
+										mp = MediaPlayer.create(getApplicationContext(), tracks[currentTrack]);
+										currentTrack++;
+										mp.setOnCompletionListener(this);
+										mp.start();
+									}
+								}
+							});
 						}
 					});
 				}
