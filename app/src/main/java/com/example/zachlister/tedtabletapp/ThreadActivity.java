@@ -98,6 +98,8 @@ public class ThreadActivity extends Activity {
 							String mRawAudioName1 = "";
 							String mRawAudioName2 = "";
 							String mRawAudioName3 = "";
+							String mRawAudioName4 = "";
+							String mRawAudioName5 = "";
 							String readInData = sb.toString();
 
 							// to account for a fixed byte length message being sent over bluetooth
@@ -112,8 +114,12 @@ public class ThreadActivity extends Activity {
 										mRawAudioName1 += readInData.charAt(i);
 									} else if (sectionCount == 2) {
 										mRawAudioName2 += readInData.charAt(i);
-									} else {
+									} else if (sectionCount == 3) {
 										mRawAudioName3 += readInData.charAt(i);
+									} else if (sectionCount == 4) {
+										mRawAudioName4 += readInData.charAt(i);
+									} else {
+										mRawAudioName5 += readInData.charAt(i);
 									}
 								} else {										// char is null, message has ended
 									break;
@@ -125,19 +131,25 @@ public class ThreadActivity extends Activity {
 							int audioID1 = getResources().getIdentifier(mRawAudioName1, "raw", getPackageName());
 							int audioID2 = 0;
 							int audioID3 = 0;
+							int audioID4 = 0;
+							int audioID5 = 0;
 
 							// if there are a second and third audio clip, retrieve them
 							if (mRawAudioName2 != null) audioID2 = getResources().getIdentifier(mRawAudioName2, "raw", getPackageName());
 							if (mRawAudioName3 != null) audioID3 = getResources().getIdentifier(mRawAudioName3, "raw", getPackageName());
+							if (mRawAudioName4 != null) audioID3 = getResources().getIdentifier(mRawAudioName4, "raw", getPackageName());
+							if (mRawAudioName5 != null) audioID3 = getResources().getIdentifier(mRawAudioName5, "raw", getPackageName());
 
 							// set the image on the screen
 							image.setImageResource(imageID);
 
 							// audio playing section
-							final int[] tracks = new int[3]; // max number of tracks is 3
+							final int[] tracks = new int[5]; // max number of tracks is 3
 							tracks[0] = audioID1;
 							tracks[1] = audioID2;
 							tracks[2] = audioID3;
+							tracks[3] = audioID4;
+							tracks[4] = audioID5;
 							final MediaPlayer mediaPlayer;
 							mediaPlayer = MediaPlayer.create(getApplicationContext(), tracks[0]);			// set up the mediaplayer with the first track
 							currentTrack = 1;
