@@ -3,4 +3,7 @@
 
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">LEBRON JAMES</string>
+
+    <string name="title_activity_thread">ThreadActivity</string>
+    <string name="hello_world">hello</string>
 </resources>
