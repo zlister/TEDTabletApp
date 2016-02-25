@@ -73,6 +73,7 @@ public class ThreadActivity extends Activity {
 				int bufferSize = 1024;
 				int bytesRead = -1;
 				byte[] buffer = new byte[bufferSize];
+
 				//Keep reading the messages while connection is open...
 				while(CONTINUE_READ_WRITE){
 					final StringBuilder sb = new StringBuilder();
@@ -134,17 +135,17 @@ public class ThreadActivity extends Activity {
 							int audioID4 = 0;
 							int audioID5 = 0;
 
-							// if there are a second and third audio clip, retrieve them
+							// if there are a second, third, fourth, and fifth audio clip, retrieve them
 							if (mRawAudioName2 != null) audioID2 = getResources().getIdentifier(mRawAudioName2, "raw", getPackageName());
 							if (mRawAudioName3 != null) audioID3 = getResources().getIdentifier(mRawAudioName3, "raw", getPackageName());
-							if (mRawAudioName4 != null) audioID3 = getResources().getIdentifier(mRawAudioName4, "raw", getPackageName());
-							if (mRawAudioName5 != null) audioID3 = getResources().getIdentifier(mRawAudioName5, "raw", getPackageName());
+							if (mRawAudioName4 != null) audioID4 = getResources().getIdentifier(mRawAudioName4, "raw", getPackageName());
+							if (mRawAudioName5 != null) audioID5 = getResources().getIdentifier(mRawAudioName5, "raw", getPackageName());
 
 							// set the image on the screen
 							image.setImageResource(imageID);
 
 							// audio playing section
-							final int[] tracks = new int[5]; // max number of tracks is 3
+							final int[] tracks = new int[5]; // max number of tracks is 5
 							tracks[0] = audioID1;
 							tracks[1] = audioID2;
 							tracks[2] = audioID3;
@@ -153,10 +154,10 @@ public class ThreadActivity extends Activity {
 							final MediaPlayer mediaPlayer;
 							mediaPlayer = MediaPlayer.create(getApplicationContext(), tracks[0]);			// set up the mediaplayer with the first track
 							currentTrack = 1;
-							mediaPlayer.start();
+							mediaPlayer.start();															// play the first sound bit
 							mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
 								@Override
-								public void onCompletion(MediaPlayer mp) {
+								public void onCompletion(MediaPlayer mp) {									// when it's done playing one sound, see if there is another sound to play
 									mp.release();
 									if (currentTrack < tracks.length && tracks[currentTrack] != 0) {		// if it's not the end of the array plus there is an actual ID of the audio track
 										mp = MediaPlayer.create(getApplicationContext(), tracks[currentTrack]);
