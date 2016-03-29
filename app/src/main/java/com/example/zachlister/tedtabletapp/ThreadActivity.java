@@ -12,6 +12,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -32,6 +33,7 @@ public class ThreadActivity extends Activity {
 		Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
 		discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
 		startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
+        addListenerOnButton();
 	}
 
 	@Override
@@ -190,4 +192,20 @@ public class ThreadActivity extends Activity {
 			}
 		}
 	};
+
+	private void addListenerOnButton() {
+		final ImageView image;
+		Button button;
+
+		button = (Button) findViewById(R.id.button);
+
+		button.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View arg0) {
+				Intent i = new Intent(getApplicationContext(), Game.class);
+                startActivity(i);
+			}
+
+		});
+	}
 }

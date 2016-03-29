@@ -6,4 +6,6 @@
 
     <string name="title_activity_thread">ThreadActivity</string>
     <string name="hello_world">hello</string>
+
+    <string name="title_activity_game">Game</string>
 </resources>
