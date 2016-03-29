@@ -8,4 +8,5 @@
     <string name="hello_world">hello</string>
 
     <string name="title_activity_game">Game</string>
+    <string name="title_activity_game2">Game2</string>
 </resources>
