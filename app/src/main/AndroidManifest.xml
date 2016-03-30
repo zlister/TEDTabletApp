@@ -36,10 +36,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".Game"
+            android:name=".SelectionGame"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_game"
-            android:theme="@style/FullscreenTheme" />
+            android:label="@string/title_activity_selection_game"
+            android:theme="@style/FullscreenTheme"></activity>
     </application>
 
 </manifest>

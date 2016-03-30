@@ -202,7 +202,7 @@ public class ThreadActivity extends Activity {
 		button.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View arg0) {
-				Intent i = new Intent(getApplicationContext(), Game.class);
+				Intent i = new Intent(getApplicationContext(), SelectionGame.class);
                 startActivity(i);
 			}
 

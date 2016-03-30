@@ -9,4 +9,6 @@
 
     <string name="title_activity_game">Game</string>
     <string name="title_activity_game2">Game2</string>
+
+    <string name="title_activity_selection_game">SelectionGame</string>
 </resources>
