@@ -1,6 +1,10 @@
 package com.example.zachlister.tedtabletapp;
 
 import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -17,11 +21,21 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.util.UUID;
+
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
 public class Main extends AppCompatActivity {
+
+    private static final int DISCOVERABLE_REQUEST_CODE = 0x1;
+    private boolean CONTINUE_READ_WRITE = true;
+
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -107,7 +121,7 @@ public class Main extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mVisible = true;
-        mControlsView = findViewById(R.id.fullscreen_content_controls);
+       // mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
 
 
@@ -119,50 +133,16 @@ public class Main extends AppCompatActivity {
             }
         });
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
-        addListenerOnButton();
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
-    }
 
-    private void addListenerOnButton() {
-        final ImageView image;
-        Button button;
-        final int[] tracks = new int[3];
-        tracks[0] = R.raw.seis;
-        tracks[1] = R.raw.in_english_is;
-        tracks[2] = R.raw.six;
-        image = (ImageView) findViewById(R.id.imageView);
-        button = (Button) findViewById(R.id.button2);
-        final MediaPlayer mediaPlayer;
-        mediaPlayer = MediaPlayer.create(getApplicationContext(), tracks[0]);
+        addListenersOnButtons();
 
-        button.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View arg0) {
-                currentTrack = 1;
-                image.setImageResource(R.drawable.bear);
-                mediaPlayer.start();
-                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-
-                        mp.release();
-                        if (currentTrack < tracks.length) {
-                            mp = MediaPlayer.create(getApplicationContext(), tracks[currentTrack]);
-                            currentTrack++;
-                            mp.setOnCompletionListener(this);
-                            mp.start();
-                        }
-                    }
-                });
-            }
-
-        });
+        //Always make sure that Bluetooth server is discoverable during listening...
+        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+        startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
     }
 
     @Override
@@ -179,7 +159,7 @@ public class Main extends AppCompatActivity {
         if (mVisible) {
             hide();
         } else {
-            show();
+            hide();
         }
     }
 
@@ -189,7 +169,7 @@ public class Main extends AppCompatActivity {
         if (actionBar != null) {
             actionBar.hide();
         }
-        mControlsView.setVisibility(View.GONE);
+       // mControlsView.setVisibility(View.GONE);
         mVisible = false;
 
         // Schedule a runnable to remove the status and navigation bar after a delay
@@ -215,7 +195,7 @@ public class Main extends AppCompatActivity {
      */
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
-        mHideHandler.postDelayed(mHideRunnable, delayMillis);
+        mHideHandler.postDelayed(mHideRunnable, 0);
     }
 
 
@@ -258,4 +238,97 @@ public class Main extends AppCompatActivity {
         AppIndex.AppIndexApi.end(client, viewAction);
         client.disconnect();
     }
+
+    public void addListenersOnButtons() {
+        Button button;
+
+        button = (Button) findViewById(R.id.button);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                Intent i = new Intent(getApplicationContext(), ThreadActivity.class);
+                startActivity(i);
+            }
+
+        });
+
+        Button button2 = (Button) findViewById(R.id.button2);
+        button2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                Intent i = new Intent(getApplicationContext(), SelectionGame.class);
+                startActivity(i);
+            }
+
+        });
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        android.util.Log.e("TrackingFlow", "Creating thread to start listening...");
+        new Thread(reader).start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(socket != null){
+            try{
+                is.close();
+                os.close();
+                socket.close();
+            }catch(Exception e){}
+            CONTINUE_READ_WRITE = false;
+        }
+    }
+
+    private BluetoothSocket socket;
+    private InputStream is;
+    private OutputStreamWriter os;
+    private Runnable reader = new Runnable() {
+        public void run() {
+            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+            UUID uuid = UUID.fromString("4e5d48e0-75df-11e3-981f-0800200c9a66");
+            try {
+                BluetoothServerSocket serverSocket = adapter.listenUsingRfcommWithServiceRecord("BLTServer", uuid);
+                android.util.Log.e("TrackingFlow", "Listening...");
+                socket = serverSocket.accept();
+                android.util.Log.e("TrackingFlow", "Socket accepted...");
+
+                is = socket.getInputStream();
+                os = new OutputStreamWriter(socket.getOutputStream());
+               // new Thread(new BluetoothWriter("1")).start(); // send skip over bluetooth
+
+                ((TEDTablet) getApplication()).setSocket(socket); // store the socket for future use
+
+            } catch (IOException e) {e.printStackTrace();}
+        }
+    };
+
+    public class BluetoothWriter implements Runnable {
+        String command;
+
+        BluetoothWriter(String s) {
+            command = s;
+        }
+        @Override
+        public void run() {
+            int index = 0;
+            while (CONTINUE_READ_WRITE) {
+                try {
+                    //os.write("Message From Server" + (index++) + "\n");
+                    os.write(command);
+                    os.flush();
+                    //Thread.sleep(10000);
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
 }

@@ -100,7 +100,7 @@ public class SelectionGame extends AppCompatActivity {
         setContentView(R.layout.activity_selection_game);
 
         mVisible = true;
-        mControlsView = findViewById(R.id.fullscreen_content_controls);
+       // mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
 
 
@@ -135,7 +135,7 @@ public class SelectionGame extends AppCompatActivity {
         if (mVisible) {
             hide();
         } else {
-            show();
+            hide();
         }
     }
 
@@ -171,7 +171,7 @@ public class SelectionGame extends AppCompatActivity {
      */
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
-        mHideHandler.postDelayed(mHideRunnable, delayMillis);
+        mHideHandler.postDelayed(mHideRunnable, 0);
     }
 
     private void startGame() {

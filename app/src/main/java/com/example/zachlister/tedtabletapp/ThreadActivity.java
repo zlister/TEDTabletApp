@@ -10,11 +10,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.media.Image;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 public class ThreadActivity extends Activity {
@@ -22,18 +25,56 @@ public class ThreadActivity extends Activity {
 	private static final int DISCOVERABLE_REQUEST_CODE = 0x1;
 	private boolean CONTINUE_READ_WRITE = true;
 
+	private long mLastClickTime = 0;
+
 	// this is to keep track of the the track that is being played from the app
 	private int currentTrack = 0;
+	private int currentAudioFile;
+	private	int currentImageFile;
+
+	private ImageView image;
+	private ProgressBar bar;
+	private Button repeatButton;
+	private Button skipButton;
+	private Button menuButton;
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_thread);
+
+		if (savedInstanceState != null) {
+			image = (ImageView) findViewById(R.id.imageView);
+			image.setImageResource(savedInstanceState.getInt("image"));
+			currentImageFile = savedInstanceState.getInt("image");
+			currentAudioFile = savedInstanceState.getInt("audio");
+		} else {
+			setContentView(R.layout.activity_thread);
+			image = (ImageView) findViewById(R.id.imageView);
+			bar = (ProgressBar) findViewById(R.id.pBar);
+			repeatButton = (Button) findViewById(R.id.repeat);
+			skipButton = (Button) findViewById(R.id.skip);
+			menuButton = (Button) findViewById(R.id.menu);
+		/*
 		//Always make sure that Bluetooth server is discoverable during listening...
 		Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
 		discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
 		startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
-        addListenerOnButton();
+		*/
+			new Thread(reader).start();
+			addListenerOnButton();
+		}
+	}
+
+
+	@Override
+	public void onSaveInstanceState(Bundle savedInstanceState) {
+
+		// Always call the superclass so it can save the view hierarchy state
+		super.onSaveInstanceState(savedInstanceState);
+
+		savedInstanceState.putInt("image", currentImageFile);
+		savedInstanceState.putInt("audio",currentAudioFile);
 	}
 
 	@Override
@@ -42,18 +83,9 @@ public class ThreadActivity extends Activity {
 		android.util.Log.e("TrackingFlow", "Creating thread to start listening...");
 		new Thread(reader).start();
 	}
-
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		if(socket != null){
-			try{
-				is.close();
-				os.close();
-				socket.close();
-			}catch(Exception e){}
-			CONTINUE_READ_WRITE = false;
-		}
 	}
 
 	private BluetoothSocket socket;
@@ -61,16 +93,17 @@ public class ThreadActivity extends Activity {
 	private OutputStreamWriter os;
 	private Runnable reader = new Runnable() {
 		public void run() {
-			BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-			UUID uuid = UUID.fromString("4e5d48e0-75df-11e3-981f-0800200c9a66");
+			//BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+			//UUID uuid = UUID.fromString("4e5d48e0-75df-11e3-981f-0800200c9a66");
 			try {
-				BluetoothServerSocket serverSocket = adapter.listenUsingRfcommWithServiceRecord("BLTServer", uuid);
-				android.util.Log.e("TrackingFlow", "Listening...");
-				socket = serverSocket.accept();
-				android.util.Log.e("TrackingFlow", "Socket accepted...");
+				//BluetoothServerSocket serverSocket = adapter.listenUsingRfcommWithServiceRecord("BLTServer", uuid);
+				//android.util.Log.e("TrackingFlow", "Listening...");
+				//socket = serverSocket.accept();
+				//android.util.Log.e("TrackingFlow", "Socket accepted...");
+				socket = ((TEDTablet) getApplication()).getSocket();
 				is = socket.getInputStream();
 				os = new OutputStreamWriter(socket.getOutputStream());
-				new Thread(new BluetoothWriter("skip")).start();
+				new Thread(new BluetoothWriter("learning")).start(); // Tell the edison to send data
 
 				int bufferSize = 1024;
 				int bytesRead = -1;
@@ -94,9 +127,10 @@ public class ThreadActivity extends Activity {
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
+							android.util.Log.e("InsideRun", "Read: " + sb.toString());
 							//Toast.makeText(ThreadActivity.this, sb.toString(), Toast.LENGTH_LONG).show();
 							int sectionCount = 0;
-							ImageView image = (ImageView) findViewById(R.id.imageView);
+							//ImageView image = (ImageView) findViewById(R.id.imageView);
 							String mDrawableName = "";
 							String mRawAudioName1 = "";
 							String mRawAudioName2 = "";
@@ -107,7 +141,7 @@ public class ThreadActivity extends Activity {
 
 							// to account for a fixed byte length message being sent over bluetooth
 							// the message will be comma separated for the image and audio files
-							for (int i = 0; i < 50; i++) {
+							for (int i = 0; i < 128; i++) {
 								if (readInData.charAt(i) == ',') {				// move to the next section
 									sectionCount++;
 								} else if (readInData.charAt(i) != 0) {			// if the char isn't null and not a comma
@@ -129,9 +163,17 @@ public class ThreadActivity extends Activity {
 								}
 							}
 
+							// update the progress bar
+							//ProgressBar bar = (ProgressBar) findViewById(R.id.pBar);
+							bar.setMax(10);
+							if(mRawAudioName1.equals("good_job")) bar.incrementProgressBy(1);
+
 							// always guaranteed an image and 1 audio file
 							int imageID = getResources().getIdentifier(mDrawableName , "drawable", getPackageName());
+							android.util.Log.e("TrackingFlow", "ImageRead: " + imageID);
 							int audioID1 = getResources().getIdentifier(mRawAudioName1, "raw", getPackageName());
+							currentAudioFile = audioID1;
+							currentImageFile = imageID;
 							int audioID2 = 0;
 							int audioID3 = 0;
 							int audioID4 = 0;
@@ -144,6 +186,7 @@ public class ThreadActivity extends Activity {
 							if (mRawAudioName5 != null) audioID5 = getResources().getIdentifier(mRawAudioName5, "raw", getPackageName());
 
 							// set the image on the screen
+							image.setImageResource(0);
 							image.setImageResource(imageID);
 
 							// audio playing section
@@ -187,10 +230,12 @@ public class ThreadActivity extends Activity {
             int index = 0;
             while (CONTINUE_READ_WRITE) {
                 try {
-                    os.write("Message From Server" + (index++) + "\n");
-                    os.write(command + "\n");
+                    //os.write("Message From Server" + (index++) + "\n");
+                    os.write(command);
                     os.flush();
-                    Thread.sleep(2000);
+					android.util.Log.e("TrackingFlow", "Sending: " + command);
+                    //Thread.sleep(10000);
+					return;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -198,19 +243,42 @@ public class ThreadActivity extends Activity {
         }
     }
 
+	// add all of the listeners on the buttons
 	private void addListenerOnButton() {
-		final ImageView image;
-		Button button;
-
-		button = (Button) findViewById(R.id.button);
-
-		button.setOnClickListener(new View.OnClickListener() {
+		//Button menuButton = (Button) findViewById(R.id.menu);
+		menuButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View arg0) {
-				Intent i = new Intent(getApplicationContext(), SelectionGame.class);
-                startActivity(i);
+				new Thread(new BluetoothWriter("menu")).start(); // Tell the edison that the child went back to the main menu
+				finish();
 			}
+		});
 
+		//Button repeatButton = (Button) findViewById(R.id.repeat);
+		repeatButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				final MediaPlayer mediaPlayer;
+				mediaPlayer = MediaPlayer.create(getApplicationContext(), currentAudioFile);	// set up the mediaplayer with the first track
+				mediaPlayer.start();
+			}
+		});
+
+		//final Button skipButton = (Button) findViewById(R.id.skip);
+		skipButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				if (SystemClock.elapsedRealtime() - mLastClickTime < 2000) {
+					return;
+				}
+
+				mLastClickTime = SystemClock.currentThreadTimeMillis();
+				new Thread(new BluetoothWriter("skip")).start(); // Tell the edison to skip this word
+
+				// update the progress bar
+				ProgressBar bar = (ProgressBar) findViewById(R.id.pBar);
+				bar.incrementProgressBy(1);
+			}
 		});
 	}
 }
