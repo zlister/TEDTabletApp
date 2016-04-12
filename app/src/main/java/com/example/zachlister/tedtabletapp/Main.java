@@ -1,21 +1,29 @@
 package com.example.zachlister.tedtabletapp;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.InputType;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.view.View.OnClickListener;
 import android.media.MediaPlayer;
+import android.widget.LinearLayout;
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -35,6 +43,10 @@ public class Main extends AppCompatActivity {
     private static final int DISCOVERABLE_REQUEST_CODE = 0x1;
     private boolean CONTINUE_READ_WRITE = true;
 
+    private String networkName = "";
+    private String password = "";
+
+    private Context m_context;
 
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -63,7 +75,7 @@ public class Main extends AppCompatActivity {
 
             // Note that some of these constants are new as of API 16 (Jelly Bean)
             // and API 19 (KitKat). It is safe to use them, as they are inlined
-            // at compile-time and do nothing on earlier devices.
+            // at compile-time and do_pe nothing on earlier devices.
             mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
                     | View.SYSTEM_UI_FLAG_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -121,6 +133,7 @@ public class Main extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mVisible = true;
+        m_context = this;
        // mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
 
@@ -259,6 +272,56 @@ public class Main extends AppCompatActivity {
             public void onClick(View arg0) {
                 Intent i = new Intent(getApplicationContext(), SelectionGame.class);
                 startActivity(i);
+            }
+
+        });
+
+        Button setupButton = (Button) findViewById(R.id.setup);
+        setupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(m_context);
+                builder.setTitle("Enter Network Information");
+                // I'm using fragment here so I'm using getView() to provide ViewGroup
+                // but you can provide here any other instance of ViewGroup from your Fragment / Activity
+                //View viewInflated = LayoutInflater.from(m_context).inflate(R.layout.network_input,(ViewGroup) getCurrentFocus(), false);
+                // Set up the input
+                final LinearLayout layout = new LinearLayout(m_context);
+                layout.setOrientation(LinearLayout.VERTICAL);
+
+                final EditText networkNameInput = new EditText(m_context);
+                final EditText networkPasswordInput = new EditText(m_context);
+
+                networkPasswordInput.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                networkNameInput.setHint("Network Name");
+                networkPasswordInput.setHint("Password");
+
+                layout.addView(networkNameInput);
+                layout.addView(networkPasswordInput);
+
+
+                //viewInflated.addView(networkNameInput);
+                //final EditText passwordInput = (EditText) viewInflated.findViewById(R.id.password);
+                // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+                builder.setView(layout);
+
+                // Set up the buttons
+                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        networkName = networkNameInput.getText().toString();
+                        password = networkPasswordInput.getText().toString();
+                    }
+                });
+                builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+                builder.show();
             }
 
         });
